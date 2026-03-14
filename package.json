@@ -10,6 +10,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.99.1",
+    "@tetherto/wdk": "^1.0.0-beta.6",
+    "@tetherto/wdk-wallet-evm": "^1.0.0-beta.8",
+    "dotenv": "^17.3.1",
     "ethers": "^6.16.0",
     "framer-motion": "^12.36.0",
     "lucide-react": "^0.577.0",
