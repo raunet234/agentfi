@@ -11,6 +11,7 @@ import {
   getBlocksUntilReveal,
 } from '../data/contractService';
 import { getExplorerUrl } from '../data/wallet';
+import { saveCommitAction, updateCommitStatus, logActivity } from '../data/supabaseService';
 import './Commit.css';
 
 interface PendingCommit {
@@ -108,6 +109,26 @@ export default function Commit() {
         amount,
       });
 
+      // Save to Supabase
+      saveCommitAction({
+        agent_id: selectedAgentId,
+        commit_id: result.commitId,
+        commit_hash: '',
+        action: selectedAction,
+        protocol: selectedProtocol,
+        amount,
+        salt: result.salt,
+        status: 'committed',
+        commit_tx_hash: result.txHash,
+        owner_address: address.toLowerCase(),
+      });
+      logActivity({
+        owner_address: address,
+        action_type: 'commit',
+        description: `Committed ${selectedAction} ${amount} USDT on ${selectedProtocol}`,
+        tx_hash: result.txHash,
+      });
+
       setCommitting(false);
       setStep(3); // Go to waiting step
     } catch (err: any) {
@@ -134,6 +155,18 @@ export default function Commit() {
       );
 
       setRevealTxHash(txHash);
+
+      // Update Supabase
+      if (pendingCommit) {
+        updateCommitStatus(pendingCommit.commitId, 'revealed', txHash);
+        logActivity({
+          owner_address: address,
+          action_type: 'reveal',
+          description: `Revealed ${pendingCommit.action} ${pendingCommit.amount} USDT on ${pendingCommit.protocol}`,
+          tx_hash: txHash,
+        });
+      }
+
       setRevealing(false);
       setStep(4); // Success step
     } catch (err: any) {

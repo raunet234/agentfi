@@ -9,6 +9,7 @@ import {
   areContractsDeployed,
 } from '../data/contractService';
 import { getExplorerUrl } from '../data/wallet';
+import { saveRewardClaim, logActivity } from '../data/supabaseService';
 import './Rewards.css';
 
 const fadeUp = { hidden: { opacity: 0, y: 16 }, visible: { opacity: 1, y: 0, transition: { duration: 0.4 } } };
@@ -56,6 +57,20 @@ export default function Rewards() {
     try {
       const txHash = await claimRewards(signer);
       setClaimTxHash(txHash);
+
+      // Save to Supabase
+      saveRewardClaim({
+        owner_address: address.toLowerCase(),
+        amount: claimable,
+        tx_hash: txHash,
+      });
+      logActivity({
+        owner_address: address,
+        action_type: 'claim',
+        description: `Claimed ${claimable} AFI tokens`,
+        tx_hash: txHash,
+      });
+
       // Refresh balances
       const [bal, claim] = await Promise.all([
         fetchAFIBalance(address),

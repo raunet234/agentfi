@@ -6,6 +6,7 @@ import { useWalletStore } from '../stores/stores';
 import { useAgentRegistry } from '../stores/agentRegistry';
 import { isWalletAvailable, getExplorerUrl } from '../data/wallet';
 import { registerAgentOnchain, areContractsDeployed } from '../data/contractService';
+import { saveAgent, logActivity } from '../data/supabaseService';
 import './Register.css';
 
 export default function Register() {
@@ -63,8 +64,30 @@ export default function Register() {
           ownerAddress: address,
           publicKey,
         });
+
+        // Save to Supabase
+        saveAgent({
+          agent_id: result.agentId || `local_${Date.now()}`,
+          owner_address: address.toLowerCase(),
+          name: agentDisplayName,
+          strategy: strategy.split('(')[0].trim(),
+          max_position_size: maxPosition,
+          public_key: publicKey,
+          status: 'active',
+          reputation: 500,
+          earnings: 0,
+          actions_count: 0,
+          tx_hash: result.txHash,
+        });
+        logActivity({
+          owner_address: address,
+          action_type: 'register',
+          description: `Registered agent "${agentDisplayName}" onchain`,
+          tx_hash: result.txHash,
+        });
       } else {
-        // Contracts not deployed — save locally only (with notice)
+        // Contracts not deployed — save locally + Supabase
+        const localId = `local_${Date.now()}`;
         addAgent({
           name: agentDisplayName,
           strategy,
@@ -72,6 +95,25 @@ export default function Register() {
           autoCompound,
           ownerAddress: address,
           publicKey,
+        });
+
+        // Save to Supabase
+        saveAgent({
+          agent_id: localId,
+          owner_address: address.toLowerCase(),
+          name: agentDisplayName,
+          strategy: strategy.split('(')[0].trim(),
+          max_position_size: maxPosition,
+          public_key: publicKey,
+          status: 'active',
+          reputation: 0,
+          earnings: 0,
+          actions_count: 0,
+        });
+        logActivity({
+          owner_address: address,
+          action_type: 'register',
+          description: `Registered agent "${agentDisplayName}" locally`,
         });
       }
 
