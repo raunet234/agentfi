@@ -1,0 +1,95 @@
+.rewards-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.rep-banner {
+  background: var(--green-surface);
+  border-color: rgba(29, 185, 84, 0.3);
+}
+
+.rewards-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+/* Reputation Score Card */
+.rep-score-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  text-align: center;
+}
+
+.rep-radial {
+  position: relative;
+  width: 160px;
+  height: 160px;
+}
+
+.rep-svg {
+  width: 100%;
+  height: 100%;
+}
+
+.rep-score-inner {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.rep-score-value {
+  font-size: 42px;
+  line-height: 1;
+}
+
+.rep-tiers {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* NXS Card */
+.nxs-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.nxs-total {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 20px;
+}
+
+.nxs-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.nxs-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--bg-border);
+}
+
+.nxs-row-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+@media (max-width: 768px) {
+  .rewards-grid {
+    grid-template-columns: 1fr;
+  }
+}

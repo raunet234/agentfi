@@ -1,0 +1,248 @@
+/* ===== OVERVIEW PAGE ===== */
+
+.overview {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.overview-stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.overview-stat-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.stat-card-label {
+  font-size: 13px;
+}
+
+.stat-card-value {
+  font-size: 32px;
+  line-height: 1.1;
+}
+
+.stat-card-sub {
+  font-size: 12px;
+  color: var(--text-tertiary);
+}
+
+.stat-card-trend {
+  font-size: 12px;
+  font-family: var(--font-data);
+}
+
+.stat-card-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  padding: 6px 12px;
+  background: var(--gold-glow);
+  border: 1px solid rgba(255, 184, 0, 0.3);
+  border-radius: var(--radius-sm);
+  color: var(--gold);
+  font-family: var(--font-data);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  transition: all 0.15s;
+  width: fit-content;
+}
+
+.stat-card-action:hover {
+  background: rgba(255, 184, 0, 0.15);
+  border-color: var(--gold);
+}
+
+.overview-row-2 {
+  display: grid;
+  grid-template-columns: 60% 40%;
+  gap: 16px;
+}
+
+.card-title {
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+}
+
+/* Getting Started Steps */
+.getting-started-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.gs-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--bg-border);
+}
+
+.gs-step:last-child {
+  border-bottom: none;
+}
+
+.gs-step-number {
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-data);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  background: var(--bg-elevated);
+  border: 1px solid var(--bg-border);
+}
+
+.gs-step-number.gs-done {
+  background: rgba(29, 185, 84, 0.15);
+  border-color: #1DB954;
+  color: #1DB954;
+}
+
+.gs-step-content {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.gs-step-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.gs-step-done .gs-step-title {
+  color: #1DB954;
+}
+
+.gs-step-desc {
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+/* Wallet Detail List */
+.wallet-detail-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.wallet-detail-row {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--bg-border);
+}
+
+.wallet-detail-row:last-child {
+  border-bottom: none;
+}
+
+/* Row 3 */
+.overview-row-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+/* Empty state for pipeline and actions */
+.pipeline-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+  text-align: center;
+  gap: 8px;
+  color: var(--text-tertiary);
+}
+
+/* Pipeline */
+.pipeline-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.pipeline-item {
+  background: var(--bg-elevated);
+  border: 1px solid var(--bg-border);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pipeline-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.pipeline-protocol {
+  font-size: 13px;
+  color: var(--text-primary);
+}
+
+.pipeline-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pipeline-progress .progress-bar {
+  flex: 1;
+}
+
+/* Empty connect state */
+.overview-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  gap: 8px;
+  color: var(--text-tertiary);
+}
+
+/* Responsive */
+@media (max-width: 1200px) {
+  .overview-stats-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .overview-row-2 {
+    grid-template-columns: 1fr;
+  }
+  .overview-row-3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .overview-stats-row {
+    grid-template-columns: 1fr;
+  }
+  .stat-card-value {
+    font-size: 24px;
+  }
+}

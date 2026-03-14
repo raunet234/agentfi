@@ -1,0 +1,20 @@
+{
+  "network": "bscTestnet",
+  "chainId": 97,
+  "deployedAt": "NOT_DEPLOYED_YET",
+  "deployer": "",
+  "contracts": {
+    "AgentRegistry": {
+      "address": "",
+      "abi": []
+    },
+    "CommitReveal": {
+      "address": "",
+      "abi": []
+    },
+    "AFIToken": {
+      "address": "",
+      "abi": []
+    }
+  }
+}

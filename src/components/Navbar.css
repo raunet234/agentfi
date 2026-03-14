@@ -1,0 +1,98 @@
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+  background: rgba(10, 26, 16, 0.85);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--bg-border);
+  z-index: 100;
+}
+
+.navbar-inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+}
+
+.navbar-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+
+.logo-icon {
+  color: #1DB954;
+  font-size: 18px;
+}
+
+.logo-text {
+  font-family: var(--font-display);
+  font-size: 18px;
+  color: var(--text-primary);
+  letter-spacing: 0.02em;
+}
+
+.navbar-links {
+  display: flex;
+  gap: 28px;
+}
+
+.navbar-links a {
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--text-secondary);
+  transition: color 0.15s;
+  text-decoration: none;
+}
+
+.navbar-links a:hover {
+  color: var(--text-primary);
+}
+
+.navbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.chain-pill {
+  font-family: var(--font-data);
+  font-size: 11px;
+  color: var(--gold);
+  background: var(--gold-glow);
+  border: 1px solid var(--gold-border);
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+
+.navbar-wallet-btn {
+  padding: 8px 20px !important;
+  font-size: 12px !important;
+}
+
+.navbar-connected-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px !important;
+  font-size: 12px !important;
+  border-color: rgba(0, 255, 136, 0.3) !important;
+  color: var(--green) !important;
+}
+
+@media (max-width: 768px) {
+  .navbar-links {
+    display: none;
+  }
+  .chain-pill {
+    display: none;
+  }
+}

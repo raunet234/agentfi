@@ -1,0 +1,84 @@
+.commit-page {
+  display: flex;
+  flex-direction: column;
+}
+
+.commit-layout {
+  display: grid;
+  grid-template-columns: 1fr 380px;
+  gap: 16px;
+}
+
+.commit-steps {
+  margin-bottom: 24px;
+}
+
+.commit-step-indicator {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.step-dot {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-data);
+  font-size: 13px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--bg-border);
+  color: var(--text-tertiary);
+  transition: all 0.2s;
+}
+
+.step-dot-active {
+  background: var(--cyan-glow);
+  border-color: var(--cyan);
+  color: var(--cyan);
+}
+
+.commit-step-content h4 {
+  font-family: var(--font-display);
+  font-size: 16px;
+  margin-bottom: 16px;
+  color: var(--text-primary);
+}
+
+.action-type-row {
+  display: flex;
+  gap: 8px;
+}
+
+.preview-block {
+  padding: 16px;
+}
+
+.waiting-block {
+  padding: 24px;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-md);
+  text-align: center;
+}
+
+.result-success {
+  text-align: center;
+  padding: 32px;
+  background: var(--green-dim);
+  border: 1px solid rgba(0, 255, 136, 0.3);
+  border-radius: var(--radius-lg);
+}
+
+.result-icon {
+  font-size: 48px;
+  color: var(--green);
+  margin-bottom: 12px;
+}
+
+@media (max-width: 1024px) {
+  .commit-layout {
+    grid-template-columns: 1fr;
+  }
+}
