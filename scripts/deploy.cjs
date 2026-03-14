@@ -1,7 +1,15 @@
 const { ethers } = require("ethers");
 const fs = require("fs");
+require("dotenv").config();
 
 async function main() {
+  const network = process.env.VITE_NETWORK || "testnet";
+  const rpcUrl =
+    network === "mainnet"
+      ? process.env.VITE_BNB_MAINNET_RPC || "https://bsc-dataseed.binance.org/"
+      : process.env.VITE_BNB_TESTNET_RPC || "https://data-seed-prebsc-1-s1.binance.org:8545/";
+  const chainId = network === "mainnet" ? 56 : 97;
+
   // Read compiled artifacts
   const registryArtifact = JSON.parse(
     fs.readFileSync("./artifacts/contracts/AgentRegistry.sol/AgentRegistry.json", "utf-8")
@@ -13,23 +21,22 @@ async function main() {
     fs.readFileSync("./artifacts/contracts/AFIToken.sol/AFIToken.json", "utf-8")
   );
 
-  // Connect to BNB Testnet
-  const RPC = "https://data-seed-prebsc-1-s1.binance.org:8545/";
-  const provider = new ethers.JsonRpcProvider(RPC);
+  const provider = new ethers.JsonRpcProvider(rpcUrl);
 
-  // Check for private key
   const pk = process.env.DEPLOYER_PRIVATE_KEY;
   if (!pk) {
-    console.log("ERROR: Set DEPLOYER_PRIVATE_KEY environment variable");
+    console.error("ERROR: Set DEPLOYER_PRIVATE_KEY in your .env file");
     process.exit(1);
   }
 
-  const wallet = new ethers.Wallet(pk, provider);
-  console.log("Deployer:", wallet.address);
+  const wallet = new ethers.Wallet(pk.startsWith("0x") ? pk : `0x${pk}`, provider);
 
-  // Use raw fetch for balance to avoid ENS resolution issues with ethers v6
+  console.log(`Network:  ${network === "mainnet" ? "BNB Smart Chain Mainnet" : "BNB Smart Chain Testnet"}`);
+  console.log(`Chain ID: ${chainId}`);
+  console.log(`Deployer: ${wallet.address}`);
+
   try {
-    const res = await fetch(RPC, {
+    const res = await fetch(rpcUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -41,15 +48,17 @@ async function main() {
     });
     const data = await res.json();
     const balance = ethers.formatEther(data.result || "0x0");
-    console.log("Balance:", balance, "tBNB");
+    console.log(`Balance:  ${balance} ${network === "mainnet" ? "BNB" : "tBNB"}`);
 
     if (parseFloat(balance) === 0) {
-      console.log("\nERROR: No tBNB balance. Get testnet BNB from:");
-      console.log("https://www.bnbchain.org/en/testnet-faucet");
+      console.error("\nERROR: No balance to deploy.");
+      if (network !== "mainnet") {
+        console.log("Get testnet BNB from: https://www.bnbchain.org/en/testnet-faucet");
+      }
       process.exit(1);
     }
   } catch (e) {
-    console.log("Could not fetch balance details:", e.message);
+    console.warn("Could not fetch balance:", e.message);
   }
 
   // Deploy AgentRegistry
@@ -76,20 +85,10 @@ async function main() {
   const afiTokenAddr = await afiToken.getAddress();
   console.log("AFIToken:", afiTokenAddr);
 
-  console.log("\n=======================================");
-  console.log("  AgentFi Deployment Complete!");
-  console.log("=======================================");
-  console.log("  Network:       BNB Smart Chain Testnet");
-  console.log("  Chain ID:      97");
-  console.log("  AgentRegistry:", registryAddr);
-  console.log("  CommitReveal: ", commitRevealAddr);
-  console.log("  AFIToken:     ", afiTokenAddr);
-  console.log("=======================================");
-
-  // Write addresses + ABIs for frontend
+  // Write config
   const config = {
-    network: "bscTestnet",
-    chainId: 97,
+    network: network === "mainnet" ? "bscMainnet" : "bscTestnet",
+    chainId,
     deployedAt: new Date().toISOString(),
     deployer: wallet.address,
     contracts: {
@@ -109,7 +108,17 @@ async function main() {
   };
 
   fs.writeFileSync("./src/data/contracts.json", JSON.stringify(config, null, 2));
-  console.log("\nFrontend config written to src/data/contracts.json");
+
+  console.log("\n=======================================");
+  console.log("  AgentFi Deployment Complete!");
+  console.log("=======================================");
+  console.log(`  Network:       ${config.network}`);
+  console.log(`  Chain ID:      ${chainId}`);
+  console.log(`  AgentRegistry: ${registryAddr}`);
+  console.log(`  CommitReveal:  ${commitRevealAddr}`);
+  console.log(`  AFIToken:      ${afiTokenAddr}`);
+  console.log("=======================================");
+  console.log("\nConfig written to src/data/contracts.json");
 }
 
 main().catch((err) => {
