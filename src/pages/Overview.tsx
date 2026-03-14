@@ -13,6 +13,7 @@ import {
   EXPLORER_URL,
   CURRENCY_SYMBOL,
 } from '../data/contractService';
+import { getActivityByOwner, getGlobalStats, type DbActivityLog } from '../data/supabaseService';
 import './Overview.css';
 
 const stagger = {
@@ -35,6 +36,8 @@ export default function Overview() {
   const [commitStats, setCommitStats] = useState({ commits: 0, reveals: 0, executions: 0 });
   const [afiBalance, setAfiBalance] = useState('0');
   const [claimable, setClaimable] = useState('0');
+  const [recentActivity, setRecentActivity] = useState<DbActivityLog[]>([]);
+  const [dbStats, setDbStats] = useState({ totalAgents: 0, totalCommits: 0, totalReveals: 0, totalClaims: 0 });
 
   const myAgents = connected
     ? agents.filter(a => a.ownerAddress.toLowerCase() === address.toLowerCase())
@@ -48,20 +51,31 @@ export default function Overview() {
   const currencySymbol = chainId === 56 ? 'BNB' : chainId === 97 ? 'tBNB' : CURRENCY_SYMBOL;
   const scanUrl = `${EXPLORER_URL}/address/${address}`;
 
-  // Fetch onchain data
+  // Fetch onchain data + Supabase data
   useEffect(() => {
-    if (!connected || !address || !contractsLive) return;
+    if (!connected || !address) return;
 
     const load = async () => {
       try {
-        const [stats, afi, claim] = await Promise.all([
-          fetchCommitRevealStats(),
-          fetchAFIBalance(address),
-          fetchClaimableRewards(address),
+        // Always fetch Supabase data
+        const [activity, stats] = await Promise.all([
+          getActivityByOwner(address, 10),
+          getGlobalStats(),
         ]);
-        setCommitStats(stats);
-        setAfiBalance(afi);
-        setClaimable(claim);
+        setRecentActivity(activity);
+        setDbStats(stats);
+
+        // Fetch onchain data if contracts are live
+        if (contractsLive) {
+          const [chainStats, afi, claim] = await Promise.all([
+            fetchCommitRevealStats(),
+            fetchAFIBalance(address),
+            fetchClaimableRewards(address),
+          ]);
+          setCommitStats(chainStats);
+          setAfiBalance(afi);
+          setClaimable(claim);
+        }
       } catch (err) {
         console.error('Failed to load overview data:', err);
       }
@@ -279,20 +293,44 @@ export default function Overview() {
         </motion.div>
 
         <motion.div className="overview-actions-card card" variants={fadeUp}>
-          <h3 className="card-title">Recent Actions</h3>
-          <div className="pipeline-empty">
-            <Bot size={32} strokeWidth={1} />
-            <p className="text-tertiary" style={{ fontSize: 13 }}>
-              {totalActions > 0
-                ? `${totalActions} onchain actions performed.`
-                : 'No onchain actions yet.'}
-            </p>
-            <p className="text-tertiary" style={{ fontSize: 11 }}>
-              {totalActions > 0
-                ? 'View your activity log for full details.'
-                : 'Register an agent and submit your first action to see it here.'}
-            </p>
-          </div>
+          <h3 className="card-title">Recent Activity {dbStats.totalAgents > 0 && <span className="text-tertiary" style={{ fontSize: 11, fontWeight: 400 }}> · {dbStats.totalAgents} agents registered</span>}</h3>
+          {recentActivity.length > 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {recentActivity.slice(0, 5).map((activity, i) => (
+                <div key={activity.id || i} style={{
+                  display: 'flex', alignItems: 'center', gap: 10,
+                  padding: '8px 12px', background: 'var(--bg-elevated)',
+                  borderRadius: 'var(--radius-sm)', fontSize: 12,
+                }}>
+                  <span style={{
+                    width: 6, height: 6, borderRadius: '50%',
+                    background: activity.action_type === 'register' ? 'var(--green)' :
+                      activity.action_type === 'commit' ? 'var(--amber)' :
+                      activity.action_type === 'reveal' ? 'var(--cyan)' : 'var(--gold)',
+                    flexShrink: 0,
+                  }} />
+                  <span className="text-secondary" style={{ flex: 1 }}>{activity.description}</span>
+                  {activity.created_at && (
+                    <span className="text-tertiary" style={{ fontSize: 10, flexShrink: 0 }}>
+                      {new Date(activity.created_at).toLocaleDateString()}
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="pipeline-empty">
+              <Bot size={32} strokeWidth={1} />
+              <p className="text-tertiary" style={{ fontSize: 13 }}>
+                {totalActions > 0
+                  ? `${totalActions} onchain actions performed.`
+                  : 'No activity yet.'}
+              </p>
+              <p className="text-tertiary" style={{ fontSize: 11 }}>
+                Register an agent and submit your first action to see it here.
+              </p>
+            </div>
+          )}
         </motion.div>
       </div>
     </motion.div>
