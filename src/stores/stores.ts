@@ -1,4 +1,7 @@
 import { create } from 'zustand';
+
+const WALLET_CONNECTED_KEY = 'agentfi_wallet_connected';
+const WALLET_ADDRESS_KEY = 'agentfi_wallet_address';
 import { BrowserProvider, JsonRpcSigner } from 'ethers';
 import {
   connectWallet,
@@ -29,6 +32,7 @@ interface WalletState {
   switchChain: () => Promise<void>;
   checkConnection: () => Promise<void>;
   clearError: () => void;
+  ensureSigner: () => Promise<JsonRpcSigner>;
 }
 
 export const useWalletStore = create<WalletState>((set, get) => ({
@@ -66,6 +70,12 @@ export const useWalletStore = create<WalletState>((set, get) => ({
         provider: result.provider,
         loading: false,
       });
+
+      // Persist connection state so we can auto-reconnect on refresh
+      try {
+        localStorage.setItem(WALLET_CONNECTED_KEY, 'true');
+        localStorage.setItem(WALLET_ADDRESS_KEY, result.address);
+      } catch { /* storage unavailable */ }
 
       // Setup event listeners for account/chain changes
       setupWalletListeners(
@@ -122,6 +132,12 @@ export const useWalletStore = create<WalletState>((set, get) => ({
       loading: false,
       error: null,
     });
+
+    // Clear persisted connection state
+    try {
+      localStorage.removeItem(WALLET_CONNECTED_KEY);
+      localStorage.removeItem(WALLET_ADDRESS_KEY);
+    } catch { /* storage unavailable */ }
   },
 
   authenticate: async () => {
@@ -158,17 +174,33 @@ export const useWalletStore = create<WalletState>((set, get) => ({
   },
 
   checkConnection: async () => {
+    // First check if we previously had a connection (persisted in localStorage)
+    const wasConnected = localStorage.getItem(WALLET_CONNECTED_KEY) === 'true';
     const existing = await checkExistingConnection();
-    if (existing) {
+    if (existing || wasConnected) {
       try {
         await get().connect();
       } catch {
-        // Silent fail on auto-reconnect
+        // If auto-reconnect fails, clear the persisted state
+        try {
+          localStorage.removeItem(WALLET_CONNECTED_KEY);
+          localStorage.removeItem(WALLET_ADDRESS_KEY);
+        } catch { /* storage unavailable */ }
       }
     }
   },
 
   clearError: () => set({ error: null }),
+
+  ensureSigner: async () => {
+    let { signer } = get();
+    if (signer) return signer;
+    // Try to reconnect
+    await get().connect();
+    signer = get().signer;
+    if (!signer) throw new Error('No signer available. Please connect your wallet.');
+    return signer;
+  },
 }));
 
 /* --- Agent Store --- */
@@ -177,7 +209,14 @@ interface AgentState {
   selectAgent: (id: string) => void;
 }
 
+const SELECTED_AGENT_KEY = 'agentfi_selected_agent';
+
 export const useAgentStore = create<AgentState>((set) => ({
-  selectedAgentId: null,
-  selectAgent: (id) => set({ selectedAgentId: id }),
+  selectedAgentId: (() => {
+    try { return localStorage.getItem(SELECTED_AGENT_KEY); } catch { return null; }
+  })(),
+  selectAgent: (id) => {
+    try { localStorage.setItem(SELECTED_AGENT_KEY, id); } catch { /* */ }
+    set({ selectedAgentId: id });
+  },
 }));
