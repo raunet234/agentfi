@@ -10,7 +10,6 @@ export default function Auth() {
   const [authStep, setAuthStep] = useState(1);
   const navigate = useNavigate();
   const {
-    address,
     displayAddress,
     chainId,
     balance,
