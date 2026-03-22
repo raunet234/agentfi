@@ -4,7 +4,7 @@ import { useWalletStore } from '../stores/stores';
 import { useAgentRegistry } from '../stores/agentRegistry';
 import {
   Wallet, GitBranch, ExternalLink, Zap, Play, Square, Settings2,
-  Eye, CheckCircle, TrendingUp, Shield, Clock, ArrowRight,
+  Eye, CheckCircle, TrendingUp, Shield, Clock,
 } from 'lucide-react';
 import {
   commitAction,
@@ -79,7 +79,7 @@ function pickBestPool(pools: DeFiPool[], strategy: string): DeFiPool | null {
 
 // ─── Component ───
 export default function Commit() {
-  const { connected, address, balance, ensureSigner } = useWalletStore();
+  const { connected, address, ensureSigner } = useWalletStore();
   const { agents } = useAgentRegistry();
 
   // Mode toggle
