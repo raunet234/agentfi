@@ -1,16 +1,13 @@
 import { Contract, JsonRpcProvider, formatEther, parseEther, keccak256, solidityPacked, randomBytes, hexlify } from 'ethers';
 import contractsConfig from './contracts.json';
 
-// ─── Network-aware RPC ───
-const isMainnet = import.meta.env.VITE_NETWORK === 'mainnet';
-const RPC_URL = isMainnet
-  ? (import.meta.env.VITE_BNB_MAINNET_RPC || 'https://bsc-dataseed.binance.org/')
-  : (import.meta.env.VITE_BNB_TESTNET_RPC || 'https://data-seed-prebsc-1-s1.binance.org:8545/');
+// ─── BNB Mainnet Configuration ───
+const RPC_URL = import.meta.env.VITE_BNB_MAINNET_RPC || 'https://bsc-dataseed.binance.org/';
 
-export const CHAIN_ID = isMainnet ? 56 : 97;
-export const NETWORK_NAME = isMainnet ? 'BNB Smart Chain' : 'BNB Smart Chain Testnet';
-export const CURRENCY_SYMBOL = isMainnet ? 'BNB' : 'tBNB';
-export const EXPLORER_URL = isMainnet ? 'https://bscscan.com' : 'https://testnet.bscscan.com';
+export const CHAIN_ID = 56;
+export const NETWORK_NAME = 'BNB Smart Chain';
+export const CURRENCY_SYMBOL = 'BNB';
+export const EXPLORER_URL = 'https://bscscan.com';
 
 // Read-only provider for fetching data
 const readProvider = new JsonRpcProvider(RPC_URL);
@@ -215,12 +212,26 @@ export async function deactivateAgentOnchain(
   const contracts = await getWriteContracts(signer);
   if (!contracts) throw new Error('Contracts not deployed');
 
-  const tx = await contracts.registry.deactivateAgent(agentId);
+  const tx = await contracts.registry.deactivateAgent(toBytes32(agentId));
   const receipt = await tx.wait();
   return receipt.hash;
 }
 
 // ─── Commit-Reveal Functions ───
+
+/**
+ * Pad a hex string to bytes32 (64 hex chars).
+ * Locally-generated agent IDs may be shorter than 32 bytes.
+ */
+function toBytes32(hexStr: string): string {
+  // Remove 0x prefix if present
+  let clean = hexStr.startsWith('0x') ? hexStr.slice(2) : hexStr;
+  // Pad with trailing zeros to 64 hex chars (32 bytes)
+  clean = clean.padEnd(64, '0');
+  // Truncate if somehow longer
+  clean = clean.slice(0, 64);
+  return '0x' + clean;
+}
 
 /**
  * Commit an action hash
@@ -246,7 +257,8 @@ export async function commitAction(
     ),
   );
 
-  const tx = await contracts.commitReveal.commit(agentId, commitHash);
+  const agentIdBytes32 = toBytes32(agentId);
+  const tx = await contracts.commitReveal.commit(agentIdBytes32, commitHash);
   const receipt = await tx.wait();
 
   // Get commitId from event
@@ -292,6 +304,21 @@ export async function revealAction(
   );
 
   const receipt = await tx.wait();
+
+  // Try to accrue AFI rewards (2 tokens per successful reveal)
+  try {
+    const signerAddress = await signer.getAddress();
+    const rewardTx = await contracts.afiToken.accrueReward(
+      signerAddress,
+      parseEther('2'),
+      `commit-reveal:${action}:${protocol}`,
+    );
+    await rewardTx.wait();
+    console.log('Accrued 2 AFI reward tokens');
+  } catch (err) {
+    console.warn('Could not accrue reward (may require owner):', err);
+  }
+
   return receipt.hash;
 }
 

@@ -1,8 +1,6 @@
 import { BrowserProvider, formatEther, JsonRpcSigner } from 'ethers';
 
-// ─── Network-aware chain configuration ───
-const isMainnet = import.meta.env.VITE_NETWORK === 'mainnet';
-
+// ─── Network configuration — MAINNET ONLY ───
 export const BNB_CHAIN_CONFIG = {
   chainId: '0x38', // 56 in hex
   chainName: 'BNB Smart Chain',
@@ -15,21 +13,35 @@ export const BNB_CHAIN_CONFIG = {
   blockExplorerUrls: ['https://bscscan.com/'],
 };
 
-export const BNB_TESTNET_CONFIG = {
-  chainId: '0x61', // 97 in hex
-  chainName: 'BNB Smart Chain Testnet',
-  nativeCurrency: {
-    name: 'tBNB',
-    symbol: 'tBNB',
-    decimals: 18,
-  },
-  rpcUrls: [import.meta.env.VITE_BNB_TESTNET_RPC || 'https://data-seed-prebsc-1-s1.binance.org:8545/'],
-  blockExplorerUrls: ['https://testnet.bscscan.com/'],
-};
+export const TARGET_CHAIN_ID = 56;
 
-// Use the configured network
-const CHAIN_CONFIG = isMainnet ? BNB_CHAIN_CONFIG : BNB_TESTNET_CONFIG;
-export const TARGET_CHAIN_ID = isMainnet ? 56 : 97;
+// ─── MetaMask-specific provider detection ───
+
+/**
+ * Get the MetaMask provider specifically, even when other wallets (Phantom, Coinbase, etc.) are installed.
+ * When multiple wallets inject into window.ethereum, they stack providers in window.ethereum.providers.
+ * This function finds the real MetaMask provider.
+ */
+function getMetaMaskProvider(): any | null {
+  if (typeof window === 'undefined' || !window.ethereum) return null;
+
+  // Case 1: Multiple providers installed (MetaMask + Phantom, etc.)
+  // They get listed in window.ethereum.providers array
+  if (window.ethereum.providers && Array.isArray(window.ethereum.providers)) {
+    const metamask = window.ethereum.providers.find(
+      (p: any) => p.isMetaMask && !p.isPhantom && !p.isBraveWallet
+    );
+    if (metamask) return metamask;
+  }
+
+  // Case 2: Only MetaMask installed — window.ethereum IS MetaMask
+  if (window.ethereum.isMetaMask && !window.ethereum.isPhantom) {
+    return window.ethereum;
+  }
+
+  // Case 3: Fallback — use whatever is available
+  return window.ethereum;
+}
 
 export interface WalletConnectionResult {
   address: string;
@@ -40,43 +52,45 @@ export interface WalletConnectionResult {
 }
 
 /**
- * Check if MetaMask or any injected wallet is available
+ * Check if MetaMask is available
  */
 export function isWalletAvailable(): boolean {
-  return typeof window !== 'undefined' && typeof window.ethereum !== 'undefined';
+  return getMetaMaskProvider() !== null;
 }
 
 /**
- * Connect to MetaMask or injected wallet
+ * Connect to MetaMask specifically
  */
 export async function connectWallet(): Promise<WalletConnectionResult> {
-  if (!isWalletAvailable()) {
-    throw new Error('No wallet detected. Please install MetaMask.');
+  const ethereum = getMetaMaskProvider();
+  if (!ethereum) {
+    throw new Error('MetaMask not detected. Please install MetaMask.');
   }
 
   try {
-    const accounts: string[] = await window.ethereum.request({
+    // This triggers the MetaMask popup for approval
+    const accounts: string[] = await ethereum.request({
       method: 'eth_requestAccounts',
     });
 
     if (!accounts || accounts.length === 0) {
-      throw new Error('No accounts found. Please unlock your wallet.');
+      throw new Error('No accounts found. Please unlock MetaMask.');
     }
 
     const address = accounts[0];
 
-    const chainIdHex: string = await window.ethereum.request({
+    const chainIdHex: string = await ethereum.request({
       method: 'eth_chainId',
     });
     const chainId = parseInt(chainIdHex, 16);
 
-    const balanceHex: string = await window.ethereum.request({
+    const balanceHex: string = await ethereum.request({
       method: 'eth_getBalance',
       params: [address, 'latest'],
     });
     const balance = formatEther(BigInt(balanceHex));
 
-    const provider = new BrowserProvider(window.ethereum);
+    const provider = new BrowserProvider(ethereum);
     const signer = await provider.getSigner();
 
     return {
@@ -98,27 +112,26 @@ export async function connectWallet(): Promise<WalletConnectionResult> {
 }
 
 /**
- * Switch to the target BNB Chain (mainnet or testnet based on env)
+ * Switch to BNB Smart Chain Mainnet
  */
 export async function switchToBNBChain(): Promise<void> {
-  if (!isWalletAvailable()) {
-    throw new Error('No wallet detected.');
-  }
+  const ethereum = getMetaMaskProvider();
+  if (!ethereum) throw new Error('MetaMask not detected.');
 
   try {
-    await window.ethereum.request({
+    await ethereum.request({
       method: 'wallet_switchEthereumChain',
-      params: [{ chainId: CHAIN_CONFIG.chainId }],
+      params: [{ chainId: BNB_CHAIN_CONFIG.chainId }],
     });
   } catch (switchError: any) {
     if (switchError.code === 4902) {
       try {
-        await window.ethereum.request({
+        await ethereum.request({
           method: 'wallet_addEthereumChain',
-          params: [CHAIN_CONFIG],
+          params: [BNB_CHAIN_CONFIG],
         });
       } catch {
-        throw new Error('Failed to add BNB Chain to wallet.');
+        throw new Error('Failed to add BNB Chain to MetaMask.');
       }
     } else if (switchError.code === 4001) {
       throw new Error('Chain switch rejected by user.');
@@ -156,11 +169,10 @@ export function truncateAddress(address: string): string {
 }
 
 /**
- * Get explorer URL for a transaction or address
+ * Get explorer URL (always mainnet bscscan)
  */
 export function getExplorerUrl(hashOrAddress: string, type: 'tx' | 'address' = 'address'): string {
-  const base = isMainnet ? 'https://bscscan.com' : 'https://testnet.bscscan.com';
-  return `${base}/${type}/${hashOrAddress}`;
+  return `https://bscscan.com/${type}/${hashOrAddress}`;
 }
 
 /**
@@ -171,7 +183,8 @@ export function setupWalletListeners(
   onChainChange: (chainId: string) => void,
   onDisconnect: () => void,
 ): () => void {
-  if (!isWalletAvailable()) return () => {};
+  const ethereum = getMetaMaskProvider();
+  if (!ethereum) return () => {};
 
   const handleAccountsChanged = (accounts: string[]) => {
     if (accounts.length === 0) {
@@ -185,23 +198,24 @@ export function setupWalletListeners(
     onChainChange(chainId);
   };
 
-  window.ethereum.on('accountsChanged', handleAccountsChanged);
-  window.ethereum.on('chainChanged', handleChainChanged);
+  ethereum.on('accountsChanged', handleAccountsChanged);
+  ethereum.on('chainChanged', handleChainChanged);
 
   return () => {
-    window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
-    window.ethereum.removeListener('chainChanged', handleChainChanged);
+    ethereum.removeListener('accountsChanged', handleAccountsChanged);
+    ethereum.removeListener('chainChanged', handleChainChanged);
   };
 }
 
 /**
- * Check if already connected (for auto-reconnect)
+ * Check if MetaMask already has authorized accounts (silent, no popup)
  */
 export async function checkExistingConnection(): Promise<string | null> {
-  if (!isWalletAvailable()) return null;
+  const ethereum = getMetaMaskProvider();
+  if (!ethereum) return null;
 
   try {
-    const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+    const accounts = await ethereum.request({ method: 'eth_accounts' });
     if (accounts && accounts.length > 0) {
       return accounts[0];
     }
@@ -209,6 +223,13 @@ export async function checkExistingConnection(): Promise<string | null> {
   } catch {
     return null;
   }
+}
+
+/**
+ * Get MetaMask provider for direct RPC calls (used by stores)
+ */
+export function getEthereumProvider(): any | null {
+  return getMetaMaskProvider();
 }
 
 // Extend Window interface for TypeScript
